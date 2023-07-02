@@ -44,8 +44,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/<start><br/>"
-        f"/api/v1.0/<end><br/>"
+        f"/api/v1.0/enter start date in yyyy-mm-dd format <start><br/>"
+        f"/api/v1.0/enter start and end date in yyyy-mm-dd/yyy-mm-dd"
        
     )
 @app.route("/api/v1.0/precipitation")
@@ -93,8 +93,45 @@ def tob():
     return jsonify(tobs_data)
     
     
-#@app.route("/api/v1.0/<start>")
-#@app.route("/api/v1.0/<start>/<end>")
+@app.route("/api/v1.0/<start>")
+def enter_start_date(start):
+    session = Session(engine)
+    results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+        filter(Measurement.date >= start).all()
+    if results:
+        min_tobs, max_tobs, avg_tobs = results[0]
+        response = {
+           "start_date": start,
+           "min_tobs": min_tobs,
+           "max_tobs": max_tobs,
+           "avg_tobs": avg_tobs
+        }
+
+        return jsonify(response)
+
+    return jsonify({"error": f"Cannot find any data for the date {start}"}), 404
+
+
+@app.route("/api/v1.0/<start>/<end>")
+def enter_start_end_date(start, end):
+    session = Session(engine)
+    results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+        filter(Measurement.date >= start, Measurement.date <= end).all()
+        
+
+    if results:
+        min_tobs, max_tobs, avg_tobs = results[0]
+        response = {
+            "start_date": start,
+            "end_date": end,
+            "min_tobs": min_tobs,
+            "max_tobs": max_tobs,
+            "avg_tobs": avg_tobs
+        }
+
+        return jsonify(response)
+
+    return jsonify({"error": f"Cannot find any data between {start} and {end}"}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
